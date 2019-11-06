@@ -603,6 +603,22 @@ async def on_voice_state_update(member, before, after):
                 # disconnect after the player has finished
                 vc.stop()
                 await vc.disconnect()
+        if before_channel != after_channel and after_channel is None and before_channel is not None:
+            language = 'en'
+            phrase = member.name + ' left'
+            phrase_mp3 = gTTS(text=phrase, lang=language, slow=False)
+            phrase_mp3.save("Outro/fame_dialogue.mp3")
+            channel = client.get_channel(before_channel.id)
+            vc = await channel.connect()
+            vc.play(discord.FFmpegPCMAudio('Outro/fame_dialogue.mp3'), after=lambda e: print('done', e))
+            # loop until the mp3 file is finished playing
+            while vc.is_playing():
+                await asyncio.sleep(1)
+            # disconnect after the player has finished
+            vc.stop()
+            await vc.disconnect()
+
+
     return
 
 
