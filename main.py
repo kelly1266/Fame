@@ -27,6 +27,54 @@ TOKEN = config.TOKEN
 client = Bot(command_prefix=config.BOT_PREFIX)
 STREAM_PLAYER = None
 
+# Classes
+
+# create youtube source
+youtube_dl.utils.bug_reports_message = lambda: ''
+
+
+ytdl_format_options = {
+    'format': 'bestaudio/best',
+    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'restrictfilenames': True,
+    'noplaylist': True,
+    'nocheckcertificate': True,
+    'ignoreerrors': False,
+    'logtostderr': False,
+    'quiet': True,
+    'no_warnings': True,
+    'default_search': 'auto',
+    'source_address': '0.0.0.0'  # bind to ipv4 since ipv6 addresses cause issues sometimes
+}
+
+ffmpeg_options = {
+    'options': '-vn'
+}
+
+ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
+
+class YTDLSource(discord.PCMVolumeTransformer):
+    def __init__(self, source, *, data, volume=0.5):
+        super().__init__(source, volume)
+
+        self.data = data
+
+        self.title = data.get('title')
+        self.url = data.get('url')
+
+    @classmethod
+    async def from_url(cls, url, *, loop=None, stream=False):
+        loop = loop or asyncio.get_event_loop()
+        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+
+        if 'entries' in data:
+            # take first item from a playlist
+            data = data['entries'][0]
+
+        filename = data['url'] if stream else ytdl.prepare_filename(data)
+        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+
 
 # Command methods
 
@@ -216,54 +264,48 @@ async def parrot(context, *args):
 #         await client.say('Piper does not currently have an audio stream playing.')
 
 
-# TODO: Update play command
-# @client.command(
-#     name='play',
-#     description='Plays the audio from a specified youtube link. If the link is not a valid youtube url it will search youtube and play the first result.',
-#     pass_context=True,
-# )
-# async def play(context, url, *args):
-#     await play_yt(url, context.message.author.voice.channel, context.message.channel, *args)
-
-
-# TODO: Update play_yt command
-# async def play_yt(url, voice_channel, text_channel, *args):
-#     global STREAM_PLAYER
-#     voice_channel = None
-#     if 'https://youtube.com/' not in url:
-#         search = url
-#         for arg in args:
-#             search = search + ' ' + arg
-#         query_string = urllib.parse.urlencode({"search_query": search})
-#         html_content = urllib.request.urlopen("http://www.youtube.com/results?" + query_string)
-#         search_results = re.findall(r'href=\"\/watch\?v=(.{11})', html_content.read().decode())
-#         url = "http://www.youtube.com/watch?v=" + search_results[0]
-#     parent_dir = config.AUDIO_DIRECTORY  # file path where the clip will be saved to
-#     filepath = parent_dir + 'play_function' + '.%(ext)s'  # the clip's complete file path
-#     ydl_opts = {
-#         'outtmpl': filepath,
-#         'format': 'bestaudio/best',
-#         'postprocessors': [{
-#             'key': 'FFmpegExtractAudio',
-#             'preferredcodec': 'mp3',
-#             'preferredquality': '192',
-#         }],
-#
-#     }
-#     # download the audio for the entire video and save it
-#     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-#         ydl.download([url])
-#     # only play the tts if user is in a voice channel
-#     if voice_channel is not None:
-#         # create StreamPlayer
-#         STREAM_PLAYER = await voice_channel.connect()
-#         STREAM_PLAYER.play(discord.FFmpegPCMAudio('Audio/play_function.mp3'), after=lambda e: print('done', e))
-#         # loop until the mp3 file is finished playing
-#         while STREAM_PLAYER.is_playing():
-#             await asyncio.sleep(1)
-#         # disconnect after the player has finished
-#         STREAM_PLAYER.stop()
-#         await STREAM_PLAYER.disconnect()
+@client.command(
+    name='play',
+    description='Plays the audio from a specified youtube link. '
+                'If the link is not a valid youtube url it will search youtube and play the first result.',
+    pass_context=True,
+)
+async def play(context, url, *args):
+    # if the user is not in a voice channel, abort
+    if context.message.author.voice is None:
+        await context.message.channel.send('User is not in a channel.')
+        return
+    # if the user did not enter a url and instead entered a string of text, search it in youtube
+    # and return the first result
+    if 'https://youtube.com/' not in url:
+        search = url
+        for arg in args:
+            search = search + ' ' + arg
+        query_string = urllib.parse.urlencode({"search_query": search})
+        html_content = urllib.request.urlopen("http://www.youtube.com/results?" + query_string)
+        search_results = re.findall(r'href=\"\/watch\?v=(.{11})', html_content.read().decode())
+        url = "http://www.youtube.com/watch?v=" + search_results[0]
+    # get the voice channel that the user who called the play function is in
+    voice_channel = context.message.author.voice.channel
+    # if the bot is already playing in a channel, add the url to the queue
+    if context.voice_client is not None:
+        await context.message.channel.send('Song has been added to queue.')
+        return
+        # TODO: create a queue system for songs
+    # join the voice channel
+    voice_client = await voice_channel.connect()
+    # create a player
+    player = await YTDLSource.from_url(url, loop=client.loop)
+    # begin playing music in the channel
+    context.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
+    # send a message with information about the link being played
+    await context.message.channel.send('Now playing music placeholder text.')
+    # wait for the player to finish playing the youtube url
+    while voice_client.is_playing():
+        await asyncio.sleep(1)
+    # disconnect from channel
+    voice_client.stop()
+    await voice_client.disconnect()
 
 
 @client.command(
@@ -374,7 +416,7 @@ async def stock(context, acronym):
         # checks the current price of the stock using yahoo finance
         price = str(round(get_live_price(acronym), 2))
         company_name = get_company_name(acronym)
-        await context.message.channel.send('The current price of '+company_name+ ' stock is $'+price)
+        await context.message.channel.send('The current price of ' + company_name + ' stock is $'+price)
     except:
         # if the method cant find the stock it throws an error
         await context.message.channel.send('Not a valid ticker.')
@@ -526,13 +568,13 @@ async def urban_random(context):
     :return:
     """
     # make a json request for a random urban dictionary definition
-    url='https://api.urbandictionary.com/v0/random'
+    url = 'https://api.urbandictionary.com/v0/random'
     verify = ssl._create_unverified_context()
     response = urllib.request.urlopen(url, context=verify)
     # get the json response containing the definition
     data = json.loads(response.read())
     # if a definition was found extract it into a readable format
-    if len(data['list'])>0:
+    if len(data['list']) > 0:
         definition = data['list'][0]['definition']
         definition = definition.replace('[', '')
         definition = definition.replace(']', '')
@@ -617,8 +659,6 @@ async def on_voice_state_update(member, before, after):
             # disconnect after the player has finished
             vc.stop()
             await vc.disconnect()
-
-
     return
 
 
@@ -672,7 +712,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     # clear all the messages in the soundboard channel
-    await clear_soundboard()
+    #await clear_soundboard()
     print('------')
 
 
