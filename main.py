@@ -712,7 +712,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     # clear all the messages in the soundboard channel
-    #await clear_soundboard()
+    await clear_soundboard()
     print('------')
 
 
