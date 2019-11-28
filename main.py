@@ -245,23 +245,19 @@ async def parrot(context, *args):
         await vc.disconnect()
 
 
-# TODO: Update pause command
-# @client.command(
-#     name='pause',
-#     description='Pauses Piper\'s audio stream.',
-#     pass_context=True,
-# )
-# async def pause(context):
-#     global STREAM_PLAYER
-#     if STREAM_PLAYER != None:
-#         if STREAM_PLAYER.is_playing():
-#             STREAM_PLAYER.pause()
-#             await client.say('Piper has been paused.')
-#         else:
-#             STREAM_PLAYER.resume()
-#             await client.say('Piper has been resumed.')
-#     else:
-#         await client.say('Piper does not currently have an audio stream playing.')
+@client.command(
+    name='pause',
+    description='Pauses Fame\'s audio stream.',
+    pass_context=True,
+)
+async def pause(context):
+    global STREAM_PLAYER
+    if STREAM_PLAYER is not None:
+        # if audio is playing, pause it. otherwise resume the audio
+        if STREAM_PLAYER.is_playing():
+            STREAM_PLAYER.pause()
+        else:
+            STREAM_PLAYER.resume()
 
 
 @client.command(
@@ -271,6 +267,7 @@ async def parrot(context, *args):
     pass_context=True,
 )
 async def play(context, url, *args):
+    global STREAM_PLAYER
     # if the user is not in a voice channel, abort
     if context.message.author.voice is None:
         await context.message.channel.send('User is not in a channel.')
@@ -296,16 +293,18 @@ async def play(context, url, *args):
     voice_client = await voice_channel.connect()
     # create a player
     player = await YTDLSource.from_url(url, loop=client.loop)
+    STREAM_PLAYER = context.voice_client
     # begin playing music in the channel
     context.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
     # send a message with information about the link being played
     await context.message.channel.send('Now playing music placeholder text.')
     # wait for the player to finish playing the youtube url
-    while voice_client.is_playing():
+    while voice_client.is_playing() or voice_client.is_paused():
         await asyncio.sleep(1)
     # disconnect from channel
     voice_client.stop()
     await voice_client.disconnect()
+    STREAM_PLAYER = None
 
 
 @client.command(
@@ -422,7 +421,6 @@ async def stock(context, acronym):
         await context.message.channel.send('Not a valid ticker.')
 
 
-# TODO: Update stop command
 @client.command(
     name='stop',
     description='Immediately stops whatever audio piper is playing and disconnects piper from the channel',
@@ -430,17 +428,10 @@ async def stock(context, acronym):
 )
 async def stop(context):
     global STREAM_PLAYER
-    voice_clients = client.voice_clients
-    user_vc = context.message.author.voice.voice_channel
-    vc_disconnect = None
-    for vc in voice_clients:
-        if vc.channel == user_vc:
-            vc_disconnect = vc
-    if vc_disconnect != None:
-        await vc_disconnect.disconnect()
-    if STREAM_PLAYER != None:
-        STREAM_PLAYER.stop()
-    STREAM_PLAYER=None
+    # if the bot is in a voice channel, disconnect
+    if context.voice_client is not None:
+        await context.voice_client.disconnect()
+        STREAM_PLAYER = None
 
 
 @client.command(
@@ -585,16 +576,15 @@ async def urban_random(context):
         await context.message.channel.send('An error has occurred, try again.')
 
 
-# TODO: Update volume command
-# @client.command(
-#     name='volume',
-#     description='Change the volume that Piper is playing the current song at.',
-#     pass_context=True,
-# )
-# async def volume(context, vol):
-#     global STREAM_PLAYER
-#     if STREAM_PLAYER != None:
-#         STREAM_PLAYER.volume = int(vol)/100
+@client.command(
+    name='volume',
+    description='Change the volume that Piper is playing the current song at.',
+    pass_context=True,
+)
+async def volume(context, vol):
+    global STREAM_PLAYER
+    if STREAM_PLAYER is not None:
+        STREAM_PLAYER.source.volume = int(vol)/100
 
 
 # On event methods
@@ -712,7 +702,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     # clear all the messages in the soundboard channel
-    await clear_soundboard()
+    #await clear_soundboard()
     print('------')
 
 
