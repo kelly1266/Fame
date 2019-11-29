@@ -54,6 +54,7 @@ ffmpeg_options = {
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
+# TODO: store all webm files in a directory
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
@@ -286,7 +287,7 @@ async def play(context, url, *args):
     voice_channel = context.message.author.voice.channel
     # if the bot is already playing in a channel, add the url to the queue
     if context.voice_client is not None:
-        await context.message.channel.send('Song has been added to queue.')
+        # await context.message.channel.send('Song has been added to queue.')
         return
         # TODO: create a queue system for songs
     # join the voice channel
@@ -297,7 +298,21 @@ async def play(context, url, *args):
     # begin playing music in the channel
     context.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
     # send a message with information about the link being played
-    await context.message.channel.send('Now playing music placeholder text.')
+    embed = discord.Embed(title=player.title)
+    embed.add_field(name='Video URL', value=url)
+    msg = await context.message.channel.send(embed=embed)
+    # get the channel's emojis
+    soundboard_channel = client.get_channel(config.SOUNDBOARD_CHANNEL_ID)
+    emojis = soundboard_channel.guild.emojis
+    # add all the emojis to the message
+    play_pause_emoji = emojis[1]
+    stop_emoji = emojis[2]
+    down_emoji = emojis[3]
+    up_emoji = emojis[4]
+    await msg.add_reaction(play_pause_emoji)
+    await msg.add_reaction(stop_emoji)
+    await msg.add_reaction(down_emoji)
+    await msg.add_reaction(up_emoji)
     # wait for the player to finish playing the youtube url
     while voice_client.is_playing() or voice_client.is_paused():
         await asyncio.sleep(1)
@@ -678,8 +693,6 @@ async def when_reaction(reaction, user):
                 file_exists = True
         # only play music if user is in a voice channel
         if voice_channel is not None and file_exists:
-            # grab user's voice channel
-            channel = voice_channel.name
             # create StreamPlayer
             vc = await user.voice.channel.connect()
             vc.play(discord.FFmpegPCMAudio(mp3_file_name), after=lambda e: print('done', e))
@@ -702,7 +715,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     # clear all the messages in the soundboard channel
-    #await clear_soundboard()
+    # await clear_soundboard()
     print('------')
 
 
