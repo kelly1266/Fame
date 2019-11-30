@@ -309,10 +309,12 @@ async def play(context, url, *args):
     stop_emoji = emojis[2]
     down_emoji = emojis[3]
     up_emoji = emojis[4]
+    replay_emoji = emojis[5]
     await msg.add_reaction(play_pause_emoji)
     await msg.add_reaction(stop_emoji)
     await msg.add_reaction(down_emoji)
     await msg.add_reaction(up_emoji)
+    await msg.add_reaction(replay_emoji)
     # wait for the player to finish playing the youtube url
     while voice_client.is_playing() or voice_client.is_paused():
         await asyncio.sleep(1)
@@ -679,8 +681,13 @@ async def on_reaction_remove(reaction, user):
 
 # TODO: when_reaction event
 async def when_reaction(reaction, user):
+    global STREAM_PLAYER
     soundboard_channel = client.get_channel(config.SOUNDBOARD_CHANNEL_ID)
     play_emoji = soundboard_channel.guild.emojis[0]
+    play_pause_emoji = soundboard_channel.guild.emojis[1]
+    stop_emoji = soundboard_channel.guild.emojis[2]
+    down_emoji = soundboard_channel.guild.emojis[3]
+    up_emoji = soundboard_channel.guild.emojis[4]
     if reaction.message.channel is soundboard_channel and not user.bot and user.voice is not None:
         voice_channel = user.voice.channel
         mp3_file_name = 'Audio/' + reaction.message.content + '.mp3'
@@ -702,6 +709,20 @@ async def when_reaction(reaction, user):
             # disconnect after the player has finished
             vc.stop()
             await vc.disconnect()
+    if not user.bot and user.voice is not None and STREAM_PLAYER is not None:
+        # pause / resume audio if user reacts with the play pause emoji
+        if reaction.emoji is play_pause_emoji:
+            if STREAM_PLAYER.is_playing():
+                STREAM_PLAYER.pause()
+            else:
+                STREAM_PLAYER.resume()
+        if reaction.emoji is stop_emoji:
+            await STREAM_PLAYER.disconnect()
+            STREAM_PLAYER = None
+        if reaction.emoji is down_emoji and STREAM_PLAYER.source.volume > 0.0:
+            STREAM_PLAYER.source.volume -= 0.1
+        if reaction.emoji is up_emoji and STREAM_PLAYER.source.volume < 1.0:
+            STREAM_PLAYER.source.volume += 0.1
     return
 
 
