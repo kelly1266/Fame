@@ -35,7 +35,7 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
-    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'outtmpl': 'YoutubeStream/fame_ytdl.%(ext)s',
     'restrictfilenames': True,
     'noplaylist': True,
     'nocheckcertificate': True,
@@ -54,7 +54,6 @@ ffmpeg_options = {
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
-# TODO: store all webm files in a directory
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
@@ -322,6 +321,15 @@ async def play(context, url, *args):
     voice_client.stop()
     await voice_client.disconnect()
     STREAM_PLAYER = None
+
+
+@client.command(
+    name='reader',
+    description='Converts a reddit text post into tts and then reads it in a discord channel',
+    pass_context=True,
+)
+async def reader(context, url):
+    return
 
 
 @client.command(
@@ -679,7 +687,6 @@ async def on_reaction_remove(reaction, user):
     await when_reaction(reaction, user)
 
 
-# TODO: when_reaction event
 async def when_reaction(reaction, user):
     global STREAM_PLAYER
     soundboard_channel = client.get_channel(config.SOUNDBOARD_CHANNEL_ID)
