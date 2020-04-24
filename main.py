@@ -21,6 +21,7 @@ import config
 import youtube_dl
 from pydub import AudioSegment
 import os
+import glob
 
 
 TOKEN = config.TOKEN
@@ -36,7 +37,7 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
-    'outtmpl': 'TemporaryAudio\\%(title)s.%(ext)s',
+    'outtmpl': 'TemporaryAudio\\Youtube-%(title)s.%(ext)s',
     'restrictfilenames': True,
     'noplaylist': True,
     'nocheckcertificate': True,
@@ -327,7 +328,11 @@ async def play(context, url, *args):
     voice_client.stop()
     await voice_client.disconnect()
     STREAM_PLAYER = None
-
+    # delete audio file after it is finished playing
+    files = glob.glob("TemporaryAudio/*")
+    for f in files:
+        if 'Youtube-' in f.title():
+            os.remove(f.title())
 
 @client.command(
     name='reader',
