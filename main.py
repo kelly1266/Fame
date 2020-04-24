@@ -36,7 +36,7 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
-    'outtmpl': 'TemporaryAudio\\%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'outtmpl': 'TemporaryAudio\\%(title)s.%(ext)s',
     'restrictfilenames': True,
     'noplaylist': True,
     'nocheckcertificate': True,
@@ -226,7 +226,7 @@ async def parrot(context, *args):
     # create a mp3 file with the phrase converted to text to speak
     language = 'en'
     phrase_mp3 = gTTS(text=phrase, lang=language, slow=False)
-    phrase_mp3.save("TemporaryAudio/parrot_command.mp3")
+    phrase_mp3.save("TemporaryAudio\\parrot_command.mp3")
     # attempt to get the voice channel that the user is in
     voice_channel = None
     try:
@@ -237,13 +237,18 @@ async def parrot(context, *args):
     if voice_channel is not None:
         # create StreamPlayer
         vc = await voice_channel.connect()
-        vc.play(discord.FFmpegPCMAudio('TemporaryAudio/parrot_command.mp3'), after=lambda e: print('done', e))
+        vc.play(discord.FFmpegPCMAudio('TemporaryAudio\\parrot_command.mp3'), after=lambda e: print('done', e))
         # loop until the mp3 file is finished playing
         while vc.is_playing():
             await asyncio.sleep(1)
         # disconnect after the player has finished
         vc.stop()
         await vc.disconnect()
+    # delete the mp3 file once it has finished playing
+    if os.path.exists("TemporaryAudio\\parrot_command.mp3"):
+        os.remove("TemporaryAudio\\parrot_command.mp3")
+    else:
+        print("File does not exist.")
 
 
 @client.command(
@@ -665,16 +670,21 @@ async def on_voice_state_update(member, before, after):
             language = 'en'
             phrase = member.name + ' left'
             phrase_mp3 = gTTS(text=phrase, lang=language, slow=False)
-            phrase_mp3.save("TemporaryAudio/outro.mp3")
+            phrase_mp3.save("TemporaryAudio\\outro.mp3")
             channel = client.get_channel(before_channel.id)
             vc = await channel.connect()
-            vc.play(discord.FFmpegPCMAudio('TemporaryAudio/outro.mp3'), after=lambda e: print('done', e))
+            vc.play(discord.FFmpegPCMAudio('TemporaryAudio\\outro.mp3'), after=lambda e: print('done', e))
             # loop until the mp3 file is finished playing
             while vc.is_playing():
                 await asyncio.sleep(1)
             # disconnect after the player has finished
             vc.stop()
             await vc.disconnect()
+            # delete the outro file once it has finished playing
+            if os.path.exists("TemporaryAudio\\outro.mp3"):
+                os.remove("TemporaryAudio\\outro.mp3")
+            else:
+                print("File does not exist")
     return
 
 
