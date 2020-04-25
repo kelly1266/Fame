@@ -20,6 +20,8 @@ from os.path import isfile, join
 import config
 import youtube_dl
 from pydub import AudioSegment
+import os
+import glob
 
 
 TOKEN = config.TOKEN
@@ -35,7 +37,7 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
-    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'outtmpl': 'TemporaryAudio\\Youtube-%(title)s.%(ext)s',
     'restrictfilenames': True,
     'noplaylist': True,
     'nocheckcertificate': True,
@@ -54,7 +56,6 @@ ffmpeg_options = {
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
-# TODO: store all webm files in a directory
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
@@ -89,8 +90,8 @@ async def clear_soundboard():
     msgs = await soundboard_channel.history(limit=1000).flatten()
     await soundboard_channel.delete_messages(msgs)
     # send a message to the soundboard channel for every file in the Audio directory
-    onlyfiles = [f for f in listdir('Audio/') if isfile(join('Audio/', f))]
-    for file in onlyfiles:
+    only_files = [f for f in listdir('Audio/') if isfile(join('Audio/', f))]
+    for file in only_files:
         file_name = file[:-4]
         await soundboard_channel.send(file_name)
     # get the play emoji
@@ -226,7 +227,7 @@ async def parrot(context, *args):
     # create a mp3 file with the phrase converted to text to speak
     language = 'en'
     phrase_mp3 = gTTS(text=phrase, lang=language, slow=False)
-    phrase_mp3.save("Audio/fame_dialogue.mp3")
+    phrase_mp3.save("TemporaryAudio\\parrot_command.mp3")
     # attempt to get the voice channel that the user is in
     voice_channel = None
     try:
@@ -237,13 +238,18 @@ async def parrot(context, *args):
     if voice_channel is not None:
         # create StreamPlayer
         vc = await voice_channel.connect()
-        vc.play(discord.FFmpegPCMAudio('Audio/fame_dialogue.mp3'), after=lambda e: print('done', e))
+        vc.play(discord.FFmpegPCMAudio('TemporaryAudio\\parrot_command.mp3'), after=lambda e: print('done', e))
         # loop until the mp3 file is finished playing
         while vc.is_playing():
             await asyncio.sleep(1)
         # disconnect after the player has finished
         vc.stop()
         await vc.disconnect()
+    # delete the mp3 file once it has finished playing
+    if os.path.exists("TemporaryAudio\\parrot_command.mp3"):
+        os.remove("TemporaryAudio\\parrot_command.mp3")
+    else:
+        print("File does not exist.")
 
 
 @client.command(
@@ -322,6 +328,19 @@ async def play(context, url, *args):
     voice_client.stop()
     await voice_client.disconnect()
     STREAM_PLAYER = None
+    # delete audio file after it is finished playing
+    files = glob.glob("TemporaryAudio/*")
+    for f in files:
+        if 'Youtube-' in f.title():
+            os.remove(f.title())
+
+@client.command(
+    name='reader',
+    description='Converts a reddit text post into tts and then reads it in a discord channel',
+    pass_context=True,
+)
+async def reader(context, url):
+    return
 
 
 @client.command(
@@ -394,9 +413,9 @@ async def soundboard(context, *args):
         return
 
     # check if a file with the given name exists
-    onlyfiles = [f for f in listdir('Audio/') if isfile(join('Audio/', f))]
+    only_files = [f for f in listdir('Audio/') if isfile(join('Audio/', f))]
     file_exists = False
-    for file in onlyfiles:
+    for file in only_files:
         test_file_name = 'audio/'+file
         if mp3_file_name == test_file_name:
             file_exists = True
@@ -656,16 +675,21 @@ async def on_voice_state_update(member, before, after):
             language = 'en'
             phrase = member.name + ' left'
             phrase_mp3 = gTTS(text=phrase, lang=language, slow=False)
-            phrase_mp3.save("Outro/fame_dialogue.mp3")
+            phrase_mp3.save("TemporaryAudio\\outro.mp3")
             channel = client.get_channel(before_channel.id)
             vc = await channel.connect()
-            vc.play(discord.FFmpegPCMAudio('Outro/fame_dialogue.mp3'), after=lambda e: print('done', e))
+            vc.play(discord.FFmpegPCMAudio('TemporaryAudio\\outro.mp3'), after=lambda e: print('done', e))
             # loop until the mp3 file is finished playing
             while vc.is_playing():
                 await asyncio.sleep(1)
             # disconnect after the player has finished
             vc.stop()
             await vc.disconnect()
+            # delete the outro file once it has finished playing
+            if os.path.exists("TemporaryAudio\\outro.mp3"):
+                os.remove("TemporaryAudio\\outro.mp3")
+            else:
+                print("File does not exist")
     return
 
 
@@ -679,7 +703,6 @@ async def on_reaction_remove(reaction, user):
     await when_reaction(reaction, user)
 
 
-# TODO: when_reaction event
 async def when_reaction(reaction, user):
     global STREAM_PLAYER
     soundboard_channel = client.get_channel(config.SOUNDBOARD_CHANNEL_ID)
@@ -692,9 +715,9 @@ async def when_reaction(reaction, user):
         voice_channel = user.voice.channel
         mp3_file_name = 'Audio/' + reaction.message.content + '.mp3'
         # check if a file with the given name exists
-        onlyfiles = [f for f in listdir('Audio/') if isfile(join('Audio/', f))]
+        only_files = [f for f in listdir('Audio/') if isfile(join('Audio/', f))]
         file_exists = False
-        for file in onlyfiles:
+        for file in only_files:
             test_file_name = 'Audio/' + file
             if mp3_file_name == test_file_name:
                 file_exists = True
