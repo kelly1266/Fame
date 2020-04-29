@@ -47,7 +47,7 @@ ytdl_format_options = {
     'no_warnings': True,
     'default_search': 'auto',
     'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
-    'cachedir': False, # don't use local caching directory
+    'cachedir': False, # don't use local cache directory
 }
 
 ffmpeg_options = {
