@@ -46,7 +46,8 @@ ytdl_format_options = {
     'quiet': True,
     'no_warnings': True,
     'default_search': 'auto',
-    'source_address': '0.0.0.0'  # bind to ipv4 since ipv6 addresses cause issues sometimes
+    'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
+    'cachedir': False, # don't use local caching directory
 }
 
 ffmpeg_options = {
@@ -333,6 +334,7 @@ async def play(context, url, *args):
     for f in files:
         if 'Youtube-' in f.title():
             os.remove(f.title())
+
 
 @client.command(
     name='reader',
@@ -759,7 +761,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     # clear all the messages in the soundboard channel
-    # await clear_soundboard()
+    await clear_soundboard()
     print('------')
 
 
