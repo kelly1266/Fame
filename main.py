@@ -288,7 +288,7 @@ async def play(context, url, *args):
             search = search + ' ' + arg
         query_string = urllib.parse.urlencode({"search_query": search})
         html_content = urllib.request.urlopen("http://www.youtube.com/results?" + query_string)
-        search_results = re.findall(r'href=\"\/watch\?v=(.{11})', html_content.read().decode())
+        search_results = re.findall(r'/watch\?v=(.{11})', html_content.read().decode())
         url = "http://www.youtube.com/watch?v=" + search_results[0]
     # get the voice channel that the user who called the play function is in
     voice_channel = context.message.author.voice.channel
