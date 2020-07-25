@@ -348,7 +348,7 @@ async def reader(context, url):
 
 @client.command(
     name='clear',
-    description='',
+    description='Attempts to revive a server by pinging users a set number of times',
     pass_context=True,
 )
 async def rescue_server(context, num_people, voltage):
