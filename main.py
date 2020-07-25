@@ -22,6 +22,7 @@ import youtube_dl
 from pydub import AudioSegment
 import os
 import glob
+import secrets
 
 
 TOKEN = config.TOKEN
@@ -343,6 +344,37 @@ async def play(context, url, *args):
 )
 async def reader(context, url):
     return
+
+
+@client.command(
+    name='clear',
+    description='',
+    pass_context=True,
+)
+async def rescue_server(context, num_people, voltage):
+    try:
+        members = context.guild.members
+        members_pinged = []
+        while len(members_pinged) < int(num_people) and len(members) > 0:
+            person = secrets.choice(members)
+            members_pinged.append(person)
+            members.remove(person)
+        pings = int(re.findall(r'\d+', voltage)[0])
+        if pings < 100:
+            await context.message.channel.send('Voltage too low!')
+            return
+        if pings > 1000:
+            await context.message.channel.send('Voltage is too high you madman!')
+            return
+        i = 0
+        while i < (pings / 100):
+            for member in members_pinged:
+                await context.message.channel.send(member.mention)
+            i += 1
+        return
+    except:
+        await context.message.channel.send('You\'re no doctor!')
+        return
 
 
 @client.command(
