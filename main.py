@@ -147,8 +147,8 @@ async def clip(context, url, start_time, end_time, *args):
         ydl.download([url])
     audio = AudioSegment.from_mp3(parent_dir + str(name) + '.mp3')
     # clip the audio file between the start and end times and overwrite the file save
-    start_time = int(start_time)
-    end_time = int(end_time)
+    start_time = float(start_time)
+    end_time = float(end_time)
     start_time *= 1000
     end_time *= 1000
     extract = audio[start_time:end_time]
@@ -546,8 +546,8 @@ async def update_intro(context, url=None, start_time=None, end_time=None):
             ydl.download([url])
         audio = AudioSegment.from_mp3(parent_dir + str(context.message.author.name) + '.mp3')
         # clip the audio file between the start and end times and overwrite the file save
-        start_time = int(start_time)
-        end_time = int(end_time)
+        start_time = float(start_time)
+        end_time = float(end_time)
         start_time *= 1000
         end_time *= 1000
         extract = audio[start_time:end_time]
