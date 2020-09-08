@@ -121,6 +121,9 @@ async def clip(context, url, start_time, end_time, *args):
     :param args: the clip title
     :return:
     """
+    if len(args) == 0:
+        await context.message.channel.send("Failed to clip video: Clip must have a name.")
+        return
     # format args into a single string
     name = ''
     for word in args:
