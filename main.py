@@ -23,6 +23,8 @@ from pydub import AudioSegment
 import os
 import glob
 import secrets
+import datetime
+import time
 
 
 TOKEN = config.TOKEN
@@ -63,9 +65,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
         super().__init__(source, volume)
 
         self.data = data
-
         self.title = data.get('title')
         self.url = data.get('url')
+        self.duration = data.get('duration')
 
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=False):
@@ -308,9 +310,12 @@ async def play(context, url, *args):
     STREAM_PLAYER = context.voice_client
     # begin playing music in the channel
     context.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
+    start_time = datetime.datetime.now()
+    player_duration =time.strftime('%M:%S', time.gmtime(player.duration))
     # send a message with information about the link being played
     embed = discord.Embed(title=player.title)
     embed.add_field(name='Video URL', value=url)
+    embed.add_field(name='Duration', value=("00:00/"+player_duration))
     msg = await context.message.channel.send(embed=embed)
     # get the channel's emojis
     soundboard_channel = client.get_channel(config.SOUNDBOARD_CHANNEL_ID)
@@ -326,9 +331,20 @@ async def play(context, url, *args):
     await msg.add_reaction(down_emoji)
     await msg.add_reaction(up_emoji)
     await msg.add_reaction(replay_emoji)
+    pause_loop_counter = 0
     # wait for the player to finish playing the youtube url
     while voice_client.is_playing() or voice_client.is_paused():
-        await asyncio.sleep(1)
+        if voice_client.is_playing():
+            await asyncio.sleep(0.9)
+            current_time = datetime.datetime.now() - start_time - datetime.timedelta(seconds=pause_loop_counter)
+            embed = discord.Embed(title=player.title)
+            embed.add_field(name='Video URL', value=url)
+            embed.add_field(name='Duration', value=(str(current_time)[2:-7] + "/" + player_duration))
+            await msg.edit(embed=embed)
+        else:
+            await asyncio.sleep(1)
+            pause_loop_counter += 1
+
     # disconnect from channel
     voice_client.stop()
     await voice_client.disconnect()
@@ -796,7 +812,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     # clear all the messages in the soundboard channel
-    await clear_soundboard()
+    # await clear_soundboard()
     print('------')
 
 
