@@ -36,3 +36,11 @@ def get_company_name(acronym):
         if x['symbol'] == acronym:
             return x['name']
 
+
+async def role_in_list(role_name, role_list):
+    in_list = False
+    i = 0
+    while i < len(role_list) and not in_list:
+        in_list = role_name == role_list[i].name.lower()
+        i += 1
+    return in_list

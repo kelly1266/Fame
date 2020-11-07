@@ -12,7 +12,7 @@ import urllib
 import json
 import ssl
 from gtts import gTTS
-from helper_methods import is_word, get_company_name
+from helper_methods import is_word, get_company_name, role_in_list
 from pathlib import Path
 import logging
 from os import listdir
@@ -25,11 +25,15 @@ import glob
 import secrets
 import datetime
 import time
+from discord.utils import get
 
 
 TOKEN = config.TOKEN
 # set global variables
-client = Bot(command_prefix=config.BOT_PREFIX)
+intents = discord.Intents.default()
+intents.presences = True
+intents.members = True
+client = Bot(command_prefix=config.BOT_PREFIX, intents=intents)
 STREAM_PLAYER = None
 
 # Classes
@@ -210,6 +214,25 @@ async def list_soundboard(context):
         file_name = file[:-4]
         await context.message.channel.send(file_name)
     return
+
+
+@client.command(
+    name='notifications',
+    description='Adds or removes the user from notifications when someone joins your channel while idle',
+    pass_context=True,
+)
+async def notifications(context):
+    guild = context.guild
+    has_role = False
+    for role in context.message.author.roles:
+        if role.name == 'notifications':
+            has_role = True
+    if has_role:
+        await context.message.author.remove_roles(get(guild.roles, name='notifications'))
+        await context.message.channel.send('You will no longer receive notifications.')
+    else:
+        await context.message.author.add_roles(get(guild.roles, name='notifications'))
+        await context.message.channel.send('You will now receive notifications if you are idle and someone joins your channel.')
 
 
 @client.command(
@@ -743,6 +766,14 @@ async def on_voice_state_update(member, before, after):
                 os.remove("TemporaryAudio\\outro.mp3")
             else:
                 print("File does not exist")
+    if after.channel is not None and not member.bot and before.channel is not after.channel:
+        for connected_user in after.channel.members:
+            print(connected_user.status)
+            for role in connected_user.roles:
+                if role.name == 'notifications' and connected_user is not member and connected_user.status == discord.Status.idle:
+                    await connected_user.send('{user} joined the channel while you were away'.format(user=member.name))
+
+
     return
 
 
