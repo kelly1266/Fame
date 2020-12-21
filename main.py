@@ -334,11 +334,11 @@ async def play(context, url, *args):
     # begin playing music in the channel
     context.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
     start_time = datetime.datetime.now()
-    player_duration =time.strftime('%M:%S', time.gmtime(player.duration))
+    player_duration =time.strftime('%H:%M:%S', time.gmtime(player.duration))
     # send a message with information about the link being played
     embed = discord.Embed(title=player.title)
     embed.add_field(name='Video URL', value=url)
-    embed.add_field(name='Duration', value=("00:00/"+player_duration))
+    embed.add_field(name='Duration', value=("00:00:00/"+player_duration))
     msg = await context.message.channel.send(embed=embed)
     # get the channel's emojis
     soundboard_channel = client.get_channel(config.SOUNDBOARD_CHANNEL_ID)
@@ -362,7 +362,8 @@ async def play(context, url, *args):
             current_time = datetime.datetime.now() - start_time - datetime.timedelta(seconds=pause_loop_counter)
             embed = discord.Embed(title=player.title)
             embed.add_field(name='Video URL', value=url)
-            embed.add_field(name='Duration', value=(str(current_time)[2:-7] + "/" + player_duration))
+            embed.add_field(name='Duration', value=("0" + str(current_time)[0:-7] + "/" + player_duration))
+            print(current_time)
             await msg.edit(embed=embed)
         else:
             await asyncio.sleep(1)
