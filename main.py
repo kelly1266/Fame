@@ -26,6 +26,7 @@ import secrets
 import datetime
 import time
 from discord.utils import get
+from discord.ext import tasks
 
 
 TOKEN = config.TOKEN
@@ -711,6 +712,12 @@ async def volume(context, vol):
         STREAM_PLAYER.source.volume = int(vol)/100
 
 
+# Task loops
+@tasks.loop(hours=168)
+async def weekly_clear_soundboard():
+    await clear_soundboard()
+
+
 # On event methods
 @client.event
 async def on_message(message):
@@ -857,6 +864,7 @@ async def on_ready():
     # clear all the messages in the soundboard channel
     # await clear_soundboard()
     print('------')
+    weekly_clear_soundboard.start()
 
 
 # code for logging errors and debug errors to the file discord.log
