@@ -381,6 +381,17 @@ async def play(context, url, *args):
 
 
 @client.command(
+    name='ping',
+    description='Ping',
+    pass_context=True,
+)
+async def reader(context):
+    await context.send(f'Pong! `{client.latency * 1000}`ms')
+    print(str(context.message.guild.id))
+    return
+
+
+@client.command(
     name='reader',
     description='Converts a reddit text post into tts and then reads it in a discord channel',
     pass_context=True,
