@@ -605,7 +605,8 @@ async def update_intro(context, url=None, start_time=None, end_time=None):
         extract = audio[start_time:end_time]
         extract.export(parent_dir + str(context.message.author.name) + '.mp3', format='mp3')
         # send a message letting the user know the file has been successfully downloaded
-        await context.message.channel.send('User Intro has been updated')
+        file = discord.File((parent_dir + str(context.message.author.name) + '.mp3'))
+        await context.message.channel.send('User Intro has been updated', file=file)
         return
 
 
