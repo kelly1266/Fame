@@ -254,7 +254,7 @@ async def parrot(context, *args):
     for word in args:
         phrase = phrase + str(word) + ' '
     if len(phrase) > 0:
-        phrase = phrase[:-1]
+        phrase = phrase[:-1].replace("'", "").replace("\"", "")
     # create a mp3 file with the phrase converted to text to speak
     language = 'en'
     phrase_mp3 = gTTS(text=phrase, lang=language, slow=False)
