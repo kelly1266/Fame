@@ -31,6 +31,5 @@ async def soundbaord(sound):
     await QUART_APP.discord_client.soundboard(sound, user)
     return jsonify(**params)
 
-host = "127.0.0.1"
-port = "5000"
-QUART_APP.run(host=host, port=port)
+
+QUART_APP.run(host=config.HOST, port=port)
