@@ -33,4 +33,4 @@ async def soundbaord(sound):
 
 host = "127.0.0.1"
 port = "5000"
-QUART_APP.run()
+QUART_APP.run(host=host, port=port)
