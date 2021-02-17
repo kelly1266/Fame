@@ -31,8 +31,7 @@
 <script>
     function playSound(sound) {
         var xmlHttp = new XMLHttpRequest();
-        //var url = window.location.href + "soundboard/" + sound + "?user=" + getCookie("username");
-        var url = "http://3.18.103.205:5000/" + "soundboard/" + sound + "?user=" + getCookie("username");
+        var url = window.location.href + "soundboard/" + sound + "?user=" + getCookie("username");
         xmlHttp.open( "GET", url, false );
         xmlHttp.send( null );
     }
