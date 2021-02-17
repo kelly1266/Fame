@@ -21,7 +21,6 @@ class DiscordClient:
         voice_channel = None
         try:
             voice_channel = self.bot.get_guild(config.GUILD_ID).get_member_named(user).voice.channel
-            print('test')
         except:
             return
 
