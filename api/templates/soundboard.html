@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+.grid-container {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  background-color: #2196F3;
+  padding: 10px;
+}
+.grid-item {
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.8);
+  padding: 20px;
+  font-size: 30px;
+  text-align: center;
+}
+</style>
+</head>
+<body onload="getDiscordUsername()">
+
+<h1>Soundboard</h1>
+<div class="grid-container">
+{% for sound in sounds %}
+<div class="grid-item" onclick="playSound('{{ sound }}')">{{ sound }}</div>
+   {% else %}
+     <div>No Soundboard Clips</div>
+{% endfor %}
+    </div>
+
+<script>
+    function playSound(sound) {
+        var xmlHttp = new XMLHttpRequest();
+        //var url = window.location.href + "soundboard/" + sound + "?user=" + getCookie("username");
+        var url = "http://3.18.103.205:5000/" + "soundboard/" + sound + "?user=" + getCookie("username");
+        xmlHttp.open( "GET", url, false );
+        xmlHttp.send( null );
+    }
+    function setCookie(name, value){
+        document.cookie=name + "=" + value;
+    }
+    function getCookie(cname){
+        var name = cname + "=";
+        var decodedCookie = decodeURIComponent(document.cookie);
+        var ca = decodedCookie.split(';');
+        for(var i = 0; i <ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
+    function getDiscordUsername(){
+        var username = getCookie("username");
+        if (username != "") {
+            alert("Welcome " + username);
+        } else {
+            username = prompt("Please enter your discord username: ");
+            if (username != "" && username != null) {
+                username = username.replace("#", "%23");
+                setCookie("username", username);
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

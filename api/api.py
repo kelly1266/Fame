@@ -2,8 +2,10 @@ import asyncio
 from quart import Quart
 import config
 from app import DiscordClient
-from quart import request
-from quart import jsonify
+from quart import request, jsonify, render_template
+from os import listdir
+from os.path import isfile, join
+
 
 QUART_APP = Quart(__name__)
 
@@ -17,8 +19,14 @@ async def before_serving():
 
 
 @QUART_APP.route("/")
-async def hello_world():
-    return "Hello World"
+async def index():
+    sounds=[]
+    only_files = [f for f in listdir('Audio/') if isfile(join('Audio/', f))]
+    for file in only_files:
+        # exclude the file type from the message
+        file_name = file[:-4]
+        sounds.append(file_name)
+    return await render_template("soundboard.html", sounds=sounds)
 
 
 @QUART_APP.route("/soundboard/<string:sound>")
@@ -32,4 +40,4 @@ async def soundbaord(sound):
     return jsonify(**params)
 
 
-QUART_APP.run(host=config.HOST, port=port)
+QUART_APP.run(host=config.HOST, port=config.PORT)
