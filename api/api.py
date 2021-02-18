@@ -4,7 +4,7 @@ import config
 from app import DiscordClient
 from quart import request, jsonify, render_template
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, dirname, abspath
 
 
 QUART_APP = Quart(__name__)
@@ -21,7 +21,8 @@ async def before_serving():
 @QUART_APP.route("/")
 async def index():
     sounds=[]
-    only_files = [f for f in listdir('Audio/') if isfile(join('Audio/', f))]
+    directory = dirname(dirname(abspath(__file__))) + "\\Audio\\"
+    only_files = [f for f in listdir(directory) if isfile(join(directory, f))]
     for file in only_files:
         # exclude the file type from the message
         file_name = file[:-4]

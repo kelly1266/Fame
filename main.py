@@ -789,7 +789,6 @@ async def on_voice_state_update(member, before, after):
                 print("File does not exist")
     if after.channel is not None and not member.bot and before.channel is not after.channel:
         for connected_user in after.channel.members:
-            print(connected_user.status)
             for role in connected_user.roles:
                 if role.name == 'notifications' and connected_user is not member and connected_user.status == discord.Status.idle:
                     await connected_user.send('{user} joined the channel while you were away'.format(user=member.name))
