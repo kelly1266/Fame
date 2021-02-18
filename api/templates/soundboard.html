@@ -36,7 +36,12 @@
         xmlHttp.send( null );
     }
     function setCookie(name, value){
-        document.cookie=name + "=" + value;
+        var d = new Date();
+        var year = d.getFullYear();
+        var month = d.getMonth();
+        var day = d.getDate();
+        var expires = new Date(year + 1, month, day);
+        document.cookie= name + "=" + value + "; expires=" + expires;
     }
     function getCookie(cname){
         var name = cname + "=";
