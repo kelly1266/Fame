@@ -41,4 +41,17 @@ async def soundbaord(sound):
     return jsonify(**params)
 
 
+@QUART_APP.route("/play")
+async def play():
+    user = request.args.get('user')
+    youtube_url = request.args.get('youtubeURL')
+    params = {
+        "user": user,
+        "youtubeURL":youtube_url
+    }
+    await QUART_APP.discord_client.play(youtube_url, user)
+    return jsonify(**params)
+
+
+
 QUART_APP.run(host=config.HOST, port=config.PORT)

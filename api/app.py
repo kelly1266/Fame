@@ -43,3 +43,7 @@ class DiscordClient:
             # disconnect after the player has finished
             vc.stop()
             await vc.disconnect()
+
+    async def play(self, youtube_url, user):
+
+        return
