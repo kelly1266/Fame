@@ -49,8 +49,6 @@ async def play():
         "user": user,
         "youtubeURL":youtube_url
     }
-    print(youtube_url)
-    print(user)
     await QUART_APP.discord_client.play(youtube_url, user)
     return jsonify(**params)
 
