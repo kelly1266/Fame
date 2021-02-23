@@ -27,6 +27,7 @@ import datetime
 import time
 from discord.utils import get
 from discord.ext import tasks
+import YTDL
 
 
 TOKEN = config.TOKEN
@@ -35,57 +36,10 @@ intents = discord.Intents.default()
 intents.presences = True
 intents.members = True
 client = Bot(command_prefix=config.BOT_PREFIX, intents=intents)
-STREAM_PLAYER = None
 
 
 # Classes
 
-# create youtube source
-youtube_dl.utils.bug_reports_message = lambda: ''
-
-
-ytdl_format_options = {
-    'format': 'bestaudio/best',
-    'outtmpl': 'TemporaryAudio\\Youtube-%(title)s.%(ext)s',
-    'restrictfilenames': True,
-    'noplaylist': True,
-    'nocheckcertificate': True,
-    'ignoreerrors': False,
-    'logtostderr': False,
-    'quiet': True,
-    'no_warnings': True,
-    'default_search': 'auto',
-    'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
-    'cachedir': False, # don't use local cache directory
-}
-
-ffmpeg_options = {
-    'options': '-vn'
-}
-
-ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-
-
-class YTDLSource(discord.PCMVolumeTransformer):
-    def __init__(self, source, *, data, volume=0.5):
-        super().__init__(source, volume)
-
-        self.data = data
-        self.title = data.get('title')
-        self.url = data.get('url')
-        self.duration = data.get('duration')
-
-    @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False):
-        loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-
-        if 'entries' in data:
-            # take first item from a playlist
-            data = data['entries'][0]
-
-        filename = data['url'] if stream else ytdl.prepare_filename(data)
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
 
 # Command methods
@@ -290,13 +244,15 @@ async def parrot(context, *args):
     pass_context=True,
 )
 async def pause(context):
-    global STREAM_PLAYER
-    if STREAM_PLAYER is not None:
+    if YTDL.STREAM_PLAYER is not None:
         # if audio is playing, pause it. otherwise resume the audio
-        if STREAM_PLAYER.is_playing():
-            STREAM_PLAYER.pause()
+        if YTDL.STREAM_PLAYER.is_playing():
+            YTDL.STREAM_PLAYER.pause()
         else:
-            STREAM_PLAYER.resume()
+            YTDL.STREAM_PLAYER.resume()
+    else:
+        url = "http://" + config.IP + ":" + config.PORT + "/pause"
+        urllib.request.urlopen(url)
 
 
 @client.command(
@@ -306,7 +262,6 @@ async def pause(context):
     pass_context=True,
 )
 async def play(context, url, *args):
-    global STREAM_PLAYER
     # if the user is not in a voice channel, abort
     if context.message.author.voice is None:
         await context.message.channel.send('User is not in a channel.')
@@ -331,8 +286,8 @@ async def play(context, url, *args):
     # join the voice channel
     voice_client = await voice_channel.connect()
     # create a player
-    player = await YTDLSource.from_url(url, loop=client.loop)
-    STREAM_PLAYER = context.voice_client
+    player = await YTDL.YTDLSource.from_url(url, loop=client.loop)
+    YTDL.STREAM_PLAYER = context.voice_client
     # begin playing music in the channel
     context.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
     start_time = datetime.datetime.now()
@@ -365,7 +320,6 @@ async def play(context, url, *args):
             embed = discord.Embed(title=player.title)
             embed.add_field(name='Video URL', value=url)
             embed.add_field(name='Duration', value=("0" + str(current_time)[0:-7] + "/" + player_duration))
-            print(current_time)
             await msg.edit(embed=embed)
         else:
             await asyncio.sleep(1)
@@ -374,7 +328,7 @@ async def play(context, url, *args):
     # disconnect from channel
     voice_client.stop()
     await voice_client.disconnect()
-    STREAM_PLAYER = None
+    YTDL.STREAM_PLAYER = None
     # delete audio file after it is finished playing
     files = glob.glob("TemporaryAudio/*")
     for f in files:
@@ -553,11 +507,13 @@ async def stock(context, acronym):
     pass_context=True
 )
 async def stop(context):
-    global STREAM_PLAYER
     # if the bot is in a voice channel, disconnect
     if context.voice_client is not None:
         await context.voice_client.disconnect()
-        STREAM_PLAYER = None
+        YTDL.STREAM_PLAYER = None
+    else:
+        url = "http://" + config.IP + ":" + config.PORT + "/stop"
+        urllib.request.urlopen(url)
 
 
 @client.command(
@@ -709,9 +665,11 @@ async def urban_random(context):
     pass_context=True,
 )
 async def volume(context, vol):
-    global STREAM_PLAYER
-    if STREAM_PLAYER is not None:
-        STREAM_PLAYER.source.volume = int(vol)/100
+    if YTDL.STREAM_PLAYER is not None:
+        YTDL.STREAM_PLAYER.source.volume = int(vol)/100
+    else:
+        url = "http://" + config.IP + ":" + config.PORT + "/volume?vol=" + vol
+        urllib.request.urlopen(url)
 
 
 # Task loops
@@ -808,7 +766,6 @@ async def on_reaction_remove(reaction, user):
 
 
 async def when_reaction(reaction, user):
-    global STREAM_PLAYER
     soundboard_channel = client.get_channel(config.SOUNDBOARD_CHANNEL_ID)
     play_emoji = soundboard_channel.guild.emojis[0]
     play_pause_emoji = soundboard_channel.guild.emojis[1]
@@ -836,20 +793,34 @@ async def when_reaction(reaction, user):
             # disconnect after the player has finished
             vc.stop()
             await vc.disconnect()
-    if not user.bot and user.voice is not None and STREAM_PLAYER is not None:
+    if not user.bot and user.voice is not None and YTDL.STREAM_PLAYER is not None:
         # pause / resume audio if user reacts with the play pause emoji
         if reaction.emoji is play_pause_emoji:
-            if STREAM_PLAYER.is_playing():
-                STREAM_PLAYER.pause()
+            if YTDL.STREAM_PLAYER.is_playing():
+                YTDL.STREAM_PLAYER.pause()
             else:
-                STREAM_PLAYER.resume()
+                YTDL.STREAM_PLAYER.resume()
         if reaction.emoji is stop_emoji:
-            await STREAM_PLAYER.disconnect()
-            STREAM_PLAYER = None
-        if reaction.emoji is down_emoji and STREAM_PLAYER.source.volume > 0.0:
-            STREAM_PLAYER.source.volume -= 0.1
-        if reaction.emoji is up_emoji and STREAM_PLAYER.source.volume < 1.0:
-            STREAM_PLAYER.source.volume += 0.1
+            await YTDL.STREAM_PLAYER.disconnect()
+            YTDL.STREAM_PLAYER = None
+        if reaction.emoji is down_emoji and YTDL.STREAM_PLAYER.source.volume > 0.0:
+            YTDL.STREAM_PLAYER.source.volume -= 0.1
+        if reaction.emoji is up_emoji and YTDL.STREAM_PLAYER.source.volume < 1.0:
+            YTDL.STREAM_PLAYER.source.volume += 0.1
+    if not user.bot and user.voice is not None and YTDL.STREAM_PLAYER is None:
+        # pause / resume audio if user reacts with the play pause emoji
+        if reaction.emoji is play_pause_emoji:
+            url = "http://" + config.IP + ":" + config.PORT + "/pause"
+            urllib.request.urlopen(url)
+        if reaction.emoji is stop_emoji:
+            url = "http://" + config.IP + ":" + config.PORT + "/stop"
+            urllib.request.urlopen(url)
+        if reaction.emoji is down_emoji:
+            url = "http://" + config.IP + ":" + config.PORT + "/volumedown"
+            urllib.request.urlopen(url)
+        if reaction.emoji is up_emoji:
+            url = "http://" + config.IP + ":" + config.PORT + "/volumeup"
+            urllib.request.urlopen(url)
     return
 
 
@@ -873,5 +844,6 @@ logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
+
 
 client.run(TOKEN)

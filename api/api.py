@@ -53,5 +53,48 @@ async def play():
     return jsonify(**params)
 
 
+@QUART_APP.route("/stop")
+async def stop():
+    params = {
+    }
+    await QUART_APP.discord_client.stop()
+    return jsonify(**params)
+
+
+@QUART_APP.route("/pause")
+async def pause():
+    params = {
+    }
+    await QUART_APP.discord_client.pause()
+    return jsonify(**params)
+
+
+@QUART_APP.route("/volume")
+async def volume():
+    vol = request.args.get('vol')
+    params = {
+        "volume":vol
+    }
+    await QUART_APP.discord_client.volume(vol)
+    return jsonify(**params)
+
+
+@QUART_APP.route("/volumedown")
+async def volumedown():
+    params = {
+
+    }
+    await QUART_APP.discord_client.volumedown()
+    return jsonify(**params)
+
+
+@QUART_APP.route("/volumeup")
+async def volumeup():
+    params = {
+
+    }
+    await QUART_APP.discord_client.volumeup()
+    return jsonify(**params)
+
 
 QUART_APP.run()
