@@ -15,10 +15,30 @@
   font-size: 30px;
   text-align: center;
 }
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.topnav {
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+.topnav a {
+  float: right;
+  color: #000000;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
 </style>
 </head>
 <body onload="getDiscordUsername()">
-
+<div class="topnav">
+  <a id="signedInUser">User: </a>
+</div>
 <h1>Soundboard</h1>
 <div class="grid-container">
 {% for sound in sounds %}
@@ -61,10 +81,11 @@
     function getDiscordUsername(){
         var username = getCookie("username");
         if (username != "") {
-            alert("Welcome " + username);
+            document.getElementById("signedInUser").innerHTML = "User: " + username;
         } else {
             username = prompt("Please enter your discord username: ");
             if (username != "" && username != null) {
+                document.getElementById("signedInUser").innerHTML = "User: " + username;
                 username = username.replace("#", "%23");
                 setCookie("username", username);
             }
