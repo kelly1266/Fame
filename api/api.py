@@ -5,6 +5,7 @@ from app import DiscordClient
 from quart import request, jsonify, render_template
 from os import listdir
 from os.path import isfile, join, dirname, abspath
+import requests
 
 
 QUART_APP = Quart(__name__)
@@ -32,6 +33,8 @@ async def index():
 
 @QUART_APP.route("/soundboard/<string:sound>")
 async def soundbaord(sound):
+    sound = requests.utils.unquote(sound)
+    print("sound: " + sound)
     user = request.args.get('user')
     params = {
         "user":user,

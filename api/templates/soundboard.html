@@ -51,7 +51,7 @@ body {
 <script>
     function playSound(sound) {
         var xmlHttp = new XMLHttpRequest();
-        var url = window.location.href + "soundboard/" + sound + "?user=" + getCookie("username");
+        var url = window.location.href + "soundboard/" + encodeURI(sound) + "?user=" + getCookie("username");
         xmlHttp.open( "GET", url, false );
         xmlHttp.send( null );
     }
