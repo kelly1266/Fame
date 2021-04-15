@@ -91,7 +91,7 @@ async def clip(context, url, start_time, end_time, *args):
     for word in args:
         name = name + str(word) + ' '
     if len(name) > 0:
-        name = name[:-1]
+        name = name[:-1].replace("'", "")
     parent_dir = config.AUDIO_DIRECTORY  # file path where the clip will be saved to
     filepath = parent_dir + str(name) + '.%(ext)s'  # the clip's complete file path
     ydl_opts = {
@@ -588,7 +588,7 @@ async def upload_mp3(context, *args):
         if mp3_file_name.endswith(' '):
             mp3_file_name = mp3_file_name[:-1]
         mp3_file_name += '.mp3'
-        mp3_file_name = mp3_file_name.lower()
+        mp3_file_name = mp3_file_name.lower().replace("'", "")
         # save the mp3 file
         await context.message.attachments[0].save(mp3_file_name)
         await context.message.channel.send('Mp3 file added to soundboard.')
