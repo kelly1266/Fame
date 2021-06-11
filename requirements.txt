@@ -56,7 +56,7 @@ tqdm==4.37.0
 typing-extensions==3.7.4
 urllib3==1.25.6
 w3lib==1.21.0
-websockets==6.0
+websockets==9.1
 Werkzeug==1.0.1
 wsproto==1.0.0
 yahoo-fin==0.8.2
