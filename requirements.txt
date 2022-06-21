@@ -33,7 +33,7 @@ lxml==4.4.1
 mangum==0.10.0
 MarkupSafe==1.1.1
 multidict==4.5.2
-numpy==1.17.3
+numpy==1.22.0
 pandas==0.25.3
 parse==1.12.1
 pycparser==2.19
